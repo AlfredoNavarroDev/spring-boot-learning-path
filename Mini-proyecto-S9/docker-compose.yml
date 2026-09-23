@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mini-proyecto-s9-db
+    environment:
+      POSTGRES_DB: inventario
+      POSTGRES_USER: inventario
+      POSTGRES_PASSWORD: inventario
+    ports:
+      - "5434:5432"
+    volumes:
+      - mini-proyecto-s9-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventario"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: mini-proyecto-s9-app
+    ports:
+      - "8089:8089"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: inventario
+      DB_USER: inventario
+      DB_PASSWORD: inventario
+      # En produccion esto viene de un secret real, nunca de un valor commiteado.
+      JWT_SECRET: ${JWT_SECRET:-cambia-esta-clave-de-desarrollo-por-una-real-de-al-menos-32-bytes}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  mini-proyecto-s9-data:

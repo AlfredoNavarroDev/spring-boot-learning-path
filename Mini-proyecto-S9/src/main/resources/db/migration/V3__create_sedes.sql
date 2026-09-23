@@ -1,0 +1,5 @@
+CREATE TABLE sedes (
+    id BIGSERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
+    ciudad VARCHAR(100) NOT NULL
+);

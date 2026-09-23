@@ -1,0 +1,4 @@
+app:
+  jwt:
+    secret: clave-de-tests-de-al-menos-32-bytes-de-largo
+    access-token-minutes: 30
