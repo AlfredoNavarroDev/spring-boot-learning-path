@@ -1,0 +1,45 @@
+# Render Blueprint para el sistema de inventario (Mini-proyecto-S9).
+# Referencia: https://render.com/docs/blueprint-spec
+#
+# Este archivo describe la infraestructura como codigo; no ejecuta ningun deploy
+# por si solo. Para desplegar de verdad: conectar el repo en render.com -> New ->
+# Blueprint, apuntando a este archivo. Render detecta el Dockerfile en
+# Mini-proyecto-S9/ y construye la imagen igual que en CI.
+
+services:
+  - type: web
+    name: inventario-api
+    runtime: docker
+    dockerfilePath: ./Mini-proyecto-S9/Dockerfile
+    dockerContext: ./Mini-proyecto-S9
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: inventario-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: inventario-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: inventario-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: inventario-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: inventario-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true # Render genera un secreto random y lo guarda cifrado; nunca queda en el repo.
+
+# Nota: Render Postgres (free tier) expira a los 30 dias. Para el proyecto de
+# portafolio se usa Neon en su lugar (ver README de esta semana) y estas
+# variables se completan a mano en el dashboard de Render apuntando al
+# connection string de Neon, en vez de "fromDatabase".
