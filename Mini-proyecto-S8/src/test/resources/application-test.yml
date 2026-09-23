@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+
+app:
+  jwt:
+    secret: clave-de-tests-de-al-menos-32-bytes-de-largo
+    access-token-minutes: 30
