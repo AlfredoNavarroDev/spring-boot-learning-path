@@ -1,0 +1,5 @@
+CREATE TABLE productos (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL,
+    stock INT NOT NULL DEFAULT 0
+);

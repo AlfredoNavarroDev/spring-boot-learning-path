@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: mini-proyecto-s5
+  datasource:
+    url: jdbc:postgresql://localhost:5433/inventario
+    username: inventario
+    password: inventario
+  jpa:
+    hibernate:
+      ddl-auto: validate # el esquema lo maneja Flyway, Hibernate solo valida que coincida
+    open-in-view: false # evita el anti-patron de lazy-loading en la capa de vista
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8085

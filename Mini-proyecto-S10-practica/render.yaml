@@ -1,0 +1,44 @@
+# Render Blueprint para el sistema de inventario (Mini-proyecto-S9).
+# Referencia: https://render.com/docs/blueprint-spec
+#
+# Este archivo describe la infraestructura como codigo; no ejecuta ningun deploy
+# por si solo. Para desplegar de verdad: conectar el repo en render.com -> New ->
+# Blueprint, apuntando a este archivo. Render detecta el Dockerfile en
+# Mini-proyecto-S9/ y construye la imagen igual que en CI.
+#
+# EJERCICIO: completá los TODO de abajo. Compará después contra
+# ../Mini-proyecto-S10/render.yaml (version resuelta) para verificar.
+
+services:
+  - type: web
+    name: inventario-api
+    runtime: docker
+    dockerfilePath: ./Mini-proyecto-S9/Dockerfile
+    dockerContext: ./Mini-proyecto-S9
+    plan: free
+    region: oregon
+    # TODO (Paso 1): healthCheckPath -> que endpoint de Spring Boot Actuator
+    # expone el estado de salud de la app? (mismo que usa el HEALTHCHECK del
+    # Dockerfile de la Semana 9)
+    healthCheckPath: /TODO
+    envVars:
+      # TODO (Paso 2): 5 variables para que la app se conecte a la base de datos
+      # de Render (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD). Cada una
+      # se resuelve con `fromDatabase: { name: inventario-db, property: <prop> }`
+      # donde <prop> es host/port/database/user/password respectivamente.
+      # Ejemplo de la primera para que copies el patron:
+      - key: DB_HOST
+        fromDatabase:
+          name: inventario-db
+          property: host
+      # TODO: agregá acá DB_PORT, DB_NAME, DB_USER, DB_PASSWORD siguiendo el
+      # mismo patron que DB_HOST de arriba.
+
+      # TODO (Paso 3): JWT_SECRET -> no se hardcodea nunca. Que clave hace que
+      # Render genere un secreto random y lo guarde cifrado?
+      - key: JWT_SECRET
+
+# Nota: Render Postgres (free tier) expira a los 30 dias. Para el proyecto de
+# portafolio se usa Neon en su lugar (ver README de esta semana) y estas
+# variables se completan a mano en el dashboard de Render apuntando al
+# connection string de Neon, en vez de "fromDatabase".

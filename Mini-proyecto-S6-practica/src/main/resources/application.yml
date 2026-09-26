@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: mini-proyecto-s6
+  data:
+    redis:
+      host: localhost
+      port: 6380
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60s # ventana corta: un score crediticio no debe quedar cacheado mucho tiempo
+
+server:
+  port: 8086
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      buroCredito:
+        sliding-window-size: 10
+        failure-rate-threshold: 50 # abre el circuito si >=50% de las ultimas 10 llamadas fallan
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+  retry:
+    instances:
+      buroCredito:
+        max-attempts: 3
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+  ratelimiter:
+    instances:
+      buroCredito:
+        limit-for-period: 20
+        limit-refresh-period: 1s
+        timeout-duration: 500ms

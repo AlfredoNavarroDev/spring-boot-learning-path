@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mini-proyecto-s5-db
+    environment:
+      POSTGRES_DB: inventario
+      POSTGRES_USER: inventario
+      POSTGRES_PASSWORD: inventario
+    ports:
+      - "5433:5432"
+    volumes:
+      - mini-proyecto-s5-data:/var/lib/postgresql/data
+
+volumes:
+  mini-proyecto-s5-data:

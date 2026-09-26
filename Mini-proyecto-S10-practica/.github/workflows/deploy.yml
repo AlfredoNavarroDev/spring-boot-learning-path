@@ -1,0 +1,44 @@
+name: CD - Deploy inventario-api a Render
+
+# EJERCICIO: completá los TODO de abajo. Compará después contra
+# ../../Mini-proyecto-S10/.github/workflows/deploy.yml (version resuelta).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Mini-proyecto-S9/**'
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Mini-proyecto-S9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Tests (gate de calidad antes de desplegar)
+        # TODO (Paso 4): comando de Maven Wrapper que limpia (clean), corre los
+        # tests, y en modo batch/no-interactivo (-B) -- el mismo que usa el CI
+        # de Mini-proyecto-S9.
+        run: TODO
+
+  deploy:
+    # TODO (Paso 5): este job NO debe correr si el job `test` de arriba falla.
+    # Que clave lo declara dependiente de `test`?
+    runs-on: ubuntu-latest
+    steps:
+      # Render redeploya solo con un webhook (Deploy Hook), no necesita el codigo
+      # ni Docker en el runner: Render clona el repo y construye la imagen el mismo.
+      - name: Disparar deploy en Render
+        # TODO (Paso 5): Render redeploya con un POST a una URL secreta guardada
+        # como GitHub secret llamado RENDER_DEPLOY_HOOK_URL. Completá el curl
+        # (fallar rapido y silencioso salvo error: -fsS; metodo POST; la URL
+        # sale de `secrets.RENDER_DEPLOY_HOOK_URL`).
+        run: TODO

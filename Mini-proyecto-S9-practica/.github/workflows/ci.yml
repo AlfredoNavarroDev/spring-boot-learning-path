@@ -1,0 +1,37 @@
+name: CI - Mini-proyecto-S9
+
+on:
+  push:
+    paths:
+      - 'Mini-proyecto-S9/**'
+  pull_request:
+    paths:
+      - 'Mini-proyecto-S9/**'
+
+defaults:
+  run:
+    working-directory: Mini-proyecto-S9
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Tests (incluye integracion con Testcontainers)
+        run: ./mvnw -B clean test
+        # Testcontainers necesita Docker: los runners hospedados de GitHub Actions ya
+        # traen el daemon activo, no requiere setup adicional.
+
+      - name: Build del jar
+        run: ./mvnw -B package -DskipTests
+
+      - name: Build de la imagen Docker
+        run: docker build -t mini-proyecto-s9:ci .
