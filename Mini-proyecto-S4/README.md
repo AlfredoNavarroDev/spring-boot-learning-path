@@ -1,8 +1,15 @@
-# Semana 4 — Spring MVC: REST APIs y controllers
+# Práctica — Semana 4 (Spring MVC: REST APIs y controllers)
 
-CRUD REST del inventario **en memoria** (sin base de datos todavia, eso llega en la Semana 5), pensado para fijar el equivalente directo de lo que ya conoces de NestJS.
+CRUD REST del inventario **en memoria** (sin base de datos todavía, eso llega en la
+Semana 5), pensado para fijar el equivalente directo de un controller de NestJS.
 
-## Cómo correrlo
+Después de cada paso corré:
+
+```
+mvn compile
+```
+
+Para correrlo:
 
 ```bash
 mvn spring-boot:run
@@ -11,33 +18,39 @@ mvn spring-boot:run
 - Swagger UI: http://localhost:8084/swagger-ui.html
 - OpenAPI JSON: http://localhost:8084/v3/api-docs
 
-## Equivalencias NestJS → Spring MVC
+## Orden sugerido
 
-| NestJS | Spring MVC |
-|---|---|
-| `@Controller('productos')` | `@RestController @RequestMapping("/api/productos")` |
-| `@Get()/@Post()/@Put()/@Delete()` | `@GetMapping/@PostMapping/@PutMapping/@DeleteMapping` |
-| `@Body() dto: CreateProductoDto` | `@Valid @RequestBody ProductoRequest` |
-| DTO con `class-validator` (`@IsNotEmpty()`) | `record` con Bean Validation (`@NotBlank`) |
-| `@Param('id')` | `@PathVariable Long id` |
-| `@Query()` | `@RequestParam` |
-| `ExceptionFilter` global (`@Catch()`) | `@RestControllerAdvice` + `@ExceptionHandler` |
-| `ValidationPipe` (400 automático) | `MethodArgumentNotValidException` capturada en el advice |
-| `@nestjs/swagger` (`DocumentBuilder`) | `springdoc-openapi-starter-webmvc-ui` |
+### 1. `domain/Producto.java` y DTOs (`ProductoRequest`, `ProductoResponse`, `PaginaResponse`) — ya completo
+- [ ] Entity + DTOs de entrada/salida separados de la entity
 
-## Endpoints
+### 2. `exception/` — excepciones + advice global
+- [ ] `ProductoDuplicadoException`, `ProductoNoEncontradoException`
+- [ ] `GlobalExceptionHandler` (`@RestControllerAdvice`) — equivalente al
+      `ExceptionFilter` global de Nest (`@Catch()`)
+- [ ] `ApiError` — forma consistente de las respuestas de error
+- [ ] Captura `MethodArgumentNotValidException` → 400 automático (equivalente a
+      `ValidationPipe`)
 
-- `GET /api/productos?pagina=0&tamanio=10` — lista paginada
-- `GET /api/productos/{id}` — detalle (404 si no existe)
-- `POST /api/productos` — crea (400 si falla validación, 409 si el nombre está duplicado)
-- `PUT /api/productos/{id}` — actualiza
-- `DELETE /api/productos/{id}` — elimina (204)
+### 3. `repository/ProductoRepository.java` y `service/ProductoService.java`
+- [ ] Reglas de negocio (duplicados, no encontrado) en el service, sin depender de Spring
 
-## Tests
+### 4. `controller/ProductoController.java` — endpoints REST
+- [ ] `GET /api/productos?pagina=0&tamanio=10` — lista paginada
+- [ ] `GET /api/productos/{id}` — detalle (404 si no existe)
+- [ ] `POST /api/productos` — crea (400 validación, 409 nombre duplicado)
+- [ ] `PUT /api/productos/{id}` — actualiza
+- [ ] `DELETE /api/productos/{id}` — elimina (204)
 
-```bash
-mvn test
-```
+### 5. `config/OpenApiConfig.java` — documentación
+- [ ] Swagger UI + OpenAPI JSON vía `springdoc-openapi-starter-webmvc-ui`
 
-- `ProductoServiceTest` — reglas de negocio (duplicados, no encontrado) sin contexto de Spring.
-- `ProductoControllerTest` — capa web con `@WebMvcTest` + `MockMvc`, mockeando el service con `@MockitoBean` (equivalente a mockear el provider en un `Test.createTestingModule` de Nest).
+### 6. Tests (`ProductoServiceTest`, `ProductoControllerTest`)
+- [ ] `ProductoServiceTest` — reglas de negocio sin contexto de Spring
+- [ ] `ProductoControllerTest` — `@WebMvcTest` + `MockMvc`, service mockeado con `@MockitoBean`
+
+## Checklist de cierre
+
+- [ ] Puedo mapear verbos HTTP a `@GetMapping/@PostMapping/@PutMapping/@DeleteMapping`
+- [ ] Separo DTO de entity y valido con Bean Validation (`@NotBlank`, etc.)
+- [ ] Centralizo el manejo de errores en un `@RestControllerAdvice`
+- [ ] Puedo testear controller y service por separado (`@WebMvcTest` vs. unitario puro)

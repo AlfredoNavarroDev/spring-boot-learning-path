@@ -1,60 +1,73 @@
-# Semana 9 — Proyecto final: sistema de inventario completo
+# Práctica — Semana 9 (Proyecto final: sistema de inventario completo)
 
-Consolida todas las semanas anteriores en un solo sistema: JPA + PostgreSQL (S5), Resilience4j/Redis quedó fuera de este mini-proyecto por alcance, JWT (S7), RBAC con los 5 roles reales (S8), Swagger, testing en las 3 capas, y `docker-compose up` de punta a punta.
+Consolida todas las semanas anteriores en un solo sistema: JPA + PostgreSQL (S5),
+JWT (S7), RBAC con los 5 roles reales (S8), Swagger, testing en las 3 capas, y
+`docker-compose up` de punta a punta. Resilience4j/Redis quedó fuera de este
+mini-proyecto por alcance.
 
-## Cómo correrlo
+Después de cada paso corré:
+
+```
+mvn compile
+```
+
+Para correrlo:
 
 ```bash
 docker compose up -d --build
 ```
 
-Levanta PostgreSQL y la API juntos. La API corre las migraciones Flyway (esquema + datos de ejemplo) al arrancar.
+Levanta PostgreSQL y la API juntos. La API corre las migraciones Flyway (esquema +
+datos de ejemplo) al arrancar.
 
 - API: http://localhost:8089/api
 - Swagger UI: http://localhost:8089/swagger-ui.html
 - Health check: http://localhost:8089/actuator/health
 
-```bash
-# Registro + login
-curl -X POST http://localhost:8089/api/auth/registro -H "Content-Type: application/json" \
-  -d '{"email":"owner@correo.com","password":"clave12345","rol":"PROPIETARIO"}'
-curl -X POST http://localhost:8089/api/auth/login -H "Content-Type: application/json" \
-  -d '{"email":"owner@correo.com","password":"clave12345"}'
+## Orden sugerido
 
-# CRUD de inventario con el token recibido
-curl http://localhost:8089/api/productos -H "Authorization: Bearer <token>"
-```
+### 1. `domain/` (`Producto`, `Categoria`, `Sede`, `Usuario`, `Rol`) + Flyway — de la Semana 5
+- [ ] Migraciones + entidades JPA reusadas y ajustadas al dominio final
 
-## Qué junta esta semana
+### 2. `security/` (`JwtService`, `JwtAuthenticationFilter`, `SecurityConfig`) — de la Semana 7/8
+- [ ] Rol como claim del JWT, sin round-trip a la base por request
 
-| Pieza | De qué semana viene |
-|---|---|
-| `Producto`/`Categoria`/`Sede` con Spring Data JPA + Flyway | Semana 5 |
-| `JwtService` + `JwtAuthenticationFilter` (rol como claim) | Semana 7/8 |
-| `@PreAuthorize` con los 5 roles reales | Semana 8 |
-| Swagger (`springdoc-openapi`) con esquema Bearer | Semana 4 |
-| Tests unitarios (Mockito), `@WebMvcTest`, integración real con Testcontainers | Semana 5/9 |
-| `Dockerfile` multi-stage + `docker-compose.yml` (app + Postgres) | Semana 9 |
-| CI en GitHub Actions (`.github/workflows/ci.yml`) | Semana 9 |
+### 3. `controller/ProductoController.java` — `@PreAuthorize` con los 5 roles reales — de la Semana 8
+
+### 4. `config/OpenApiConfig.java` — Swagger con esquema Bearer — de la Semana 4
+
+### 5. `Dockerfile` multi-stage + `docker-compose.yml`
+- [ ] Etapa `builder` (`eclipse-temurin:21-jdk-alpine`) compila con Maven y se
+      descarta entera al final
+- [ ] Etapa runtime (`eclipse-temurin:21-jre-alpine`) — solo el JRE + el jar ya
+      compilado, corre como usuario `spring` no-root, con `HEALTHCHECK` contra
+      `/actuator/health`
+
+### 6. `.github/workflows/ci.yml` — CI
+- [ ] Corre `mvn test` (incluye la integración con Testcontainers — los runners de
+      GitHub Actions ya traen Docker) y valida que la imagen Docker compile, en
+      cada push/PR que toque esta carpeta
+
+### 7. Tests (`AuthServiceTest`, `ProductoServiceTest`, `InventarioFlujoCompletoIT`)
+- [ ] `InventarioFlujoCompletoIT` — **e2e real contra PostgreSQL** (Testcontainers,
+      no H2): dos usuarios con roles distintos (`ABASTECEDOR`, `VENDEDOR`) se
+      registran, loguean, y el flujo alta → lectura → intento de borrado se
+      comporta según el rol de cada uno. Cubre en un solo test JWT + RBAC + JPA +
+      Postgres funcionando juntos
 
 ## Nota importante — Spring Boot 4 modularizó Flyway
 
-En Spring Boot 4, `FlywayAutoConfiguration` se movió del `spring-boot-autoconfigure` monolítico a su propio módulo. Tener `flyway-core` solo en el classpath **no alcanza**: hay que declarar `spring-boot-starter-flyway` explícitamente, o Flyway nunca corre y Hibernate falla con `Schema validation: missing table [...]` al validar contra un esquema vacío. Aplica igual a las Semanas 5, 7 y 8 de este repo.
+En Spring Boot 4, `FlywayAutoConfiguration` se movió del `spring-boot-autoconfigure`
+monolítico a su propio módulo. Tener `flyway-core` solo en el classpath **no
+alcanza**: hay que declarar `spring-boot-starter-flyway` explícitamente, o Flyway
+nunca corre y Hibernate falla con `Schema validation: missing table [...]`. Aplica
+igual a las Semanas 5, 7 y 8 de este repo.
 
-## Dockerfile multi-stage
+## Checklist de cierre
 
-- **Etapa `builder`** (`eclipse-temurin:21-jdk-alpine`): compila con Maven; se descarta entera al final.
-- **Etapa runtime** (`eclipse-temurin:21-jre-alpine`): solo el JRE + el jar ya compilado, corre como usuario `spring` no-root, con `HEALTHCHECK` contra `/actuator/health`.
-
-## Tests
-
-```bash
-mvn test
-```
-
-- `AuthServiceTest` / `ProductoServiceTest` — unitarios con Mockito.
-- `InventarioFlujoCompletoIT` — **e2e real contra PostgreSQL** (Testcontainers, no H2): dos usuarios con roles distintos (`ABASTECEDOR`, `VENDEDOR`) se registran, loguean, y el flujo alta → lectura → intento de borrado se comporta según el rol de cada uno. Cubre en un solo test JWT + RBAC + JPA + Postgres funcionando juntos.
-
-## CI
-
-`.github/workflows/ci.yml` corre `mvn test` (incluye la integración con Testcontainers — los runners de GitHub Actions ya traen Docker) y valida que la imagen Docker compile, en cada push/PR que toque esta carpeta.
+- [ ] Puedo armar de memoria el pipeline completo: JPA → JWT → RBAC → Swagger →
+      tests → Docker → CI
+- [ ] Entiendo por qué el test de integración final usa Postgres real
+      (Testcontainers) y no H2
+- [ ] Sé por qué `spring-boot-starter-flyway` es obligatorio en Spring Boot 4
+- [ ] `docker compose up --build` levanta todo (app + Postgres) sin pasos manuales

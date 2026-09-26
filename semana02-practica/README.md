@@ -1,9 +1,10 @@
-# Práctica — Semana 2 (Spring Core / DI)
+# Práctica — Semana 2 (Spring Core: IoC, DI, beans)
 
-Mini-proyecto integrador de la semana 2: rearmar la capa de servicios del
-inventario usando **solo** el contenedor IoC de Spring (sin web, sin BD).
-Todos los archivos tienen comentarios `TODO` en vez de la solución. Si te
-trabás, mirá `../semana02` (ahí está el mismo tema ya resuelto, día a día).
+Primer contacto con el contenedor de Spring: `@Component`/`@Service`/`@Repository`,
+inyección por constructor, `@Configuration` + `@Bean` para clases externas, `@Value`
+para config externa, `@Profile` y el ciclo de vida de un bean singleton
+(`@PostConstruct`/`@PreDestroy`). Dominio: mismo inventario de la Semana 1, ahora
+manejado por Spring.
 
 Después de cada paso corré:
 
@@ -11,56 +12,66 @@ Después de cada paso corré:
 mvn compile
 ```
 
-para verificar que compila. Cuando termines una parte, descomentá el bloque
-correspondiente en `Semana02PracticaApplication.java` y corré:
+Para ver el flujo completo (los 8 pasos corren en orden dentro de `main`):
 
-```
+```bash
 mvn spring-boot:run
 ```
 
 ## Orden sugerido
 
-### 1. `entity/Producto.java` — record inmutable (ya completo)
-- [x] Record con `nombre`, `stock`, `precio`. Sin lógica de negocio.
+### 1. `entity/Producto.java` y `dto/ProductoStockDto.java` — records planos (ya completo)
+- [ ] `Producto(nombre, stock, precio)` — objeto de dominio, no es bean de Spring
+- [ ] `ProductoStockDto(nombre, stock, estado)` — DTO con campo `estado` calculado
+      por el service, no por la entity
 
 ### 2. `repository/ProductoRepository.java` — `@Repository`
-- [x] `List<Producto>` en memoria con 5 productos
-- [x] `buscarPorNombre(String)` → `null` si no existe (con stream + `equalsIgnoreCase`)
-- [x] `listarTodos()`
+- [ ] Lista en memoria con 5 productos (`Laptop HP`, `Monitor Dell`, `Teclado Mecánico`,
+      `Mouse Inalámbrico`, `Hub USB-C`)
+- [ ] `buscarPorNombre(String)` — stream + `equalsIgnoreCase`, `null` si no existe
+- [ ] `listarTodos()`
 
-### 3. `service/` — `@Service` + constructor injection
-- [x] `ProductoService` inyecta `ProductoRepository` por **constructor** (`private final`)
-- [x] `NotificacionService.enviarAlerta(String)` imprime `[NOTIFICACIÓN] ...`
+### 3. `service/NotificacionService.java` y `service/ProductoService.java` — `@Service` + inyección por constructor
+- [ ] `NotificacionService.enviarAlerta(String)` — imprime `[NOTIFICACIÓN]`
+- [ ] `ProductoService` inyecta `ProductoRepository` por constructor (`private final`,
+      sin `@Autowired`) y delega `buscarPorNombre`/`listarTodos`
 
-### 4. `component/StockValidator.java` — `@Component`
-- [x] `estaBajo(Producto, int umbral)` → `stock <= umbral`
-- [x] `noExiste(Producto)` → `producto == null`
-- [x] `InventarioService` cablea `ProductoService` + `NotificacionService` + `StockValidator`
+### 4. `component/StockValidator.java` — `@Component` genérico
+- [ ] `estaBajo(Producto, int umbral)` → `stock() <= umbral`
+- [ ] `noExiste(Producto)` → `producto == null`
 
-### 5. `dto/ProductoStockDto.java` — no devolvás la entity
-- [x] `revisarStock(...)` devuelve el DTO con `estado` = `"OK"` / `"ALERTA"` / `"NO ENCONTRADO"`
+### 5. `service/InventarioService.java` — orquestador con 3 dependencias inyectadas
+- [ ] Constructor cablea `ProductoService`, `NotificacionService`, `StockValidator`
+      + `@Value("${inventario.umbral-stock:5}")`
+- [ ] `revisarStock(nombre, umbral)` — busca, valida y devuelve `ProductoStockDto`
+      con estado `NO ENCONTRADO`/`ALERTA`/`OK`, disparando alerta en los dos primeros casos
+- [ ] Sobrecarga `revisarStock(nombre)` — usa el umbral por defecto inyectado
 
-### 6. `config/AppConfig.java` — `@Configuration` + `@Bean`
-- [x] `@Bean Clock clock()` → `Clock.systemDefaultZone()`
-- [x] `@Bean PrecioFormatter` con `@Value` de `inventario.moneda.*`
+### 6. `config/AppConfig.java` y `util/PrecioFormatter.java` — `@Configuration` + `@Bean`
+- [ ] `PrecioFormatter` es un POJO sin anotación (no se le puede poner `@Component`
+      porque necesita un `Locale` como parámetro)
+- [ ] `@Bean clock()` → `Clock.systemDefaultZone()` (clase del JDK, tampoco anotable)
+- [ ] `@Bean precioFormatter(...)` — recibe `inventario.moneda.language`/`.country`
+      por `@Value` y construye el `Locale`
 
-### 7. `@Value` + ciclo de vida
-- [x] `InventarioService` inyecta `@Value("${inventario.umbral-stock:5}")`
-- [x] `CicloVidaDemo` con `@PostConstruct` / `@PreDestroy`
-- [x] el `main` cierra con `ctx.close()` → dispara `@PreDestroy`
+### 7. `component/CicloVidaDemo.java` — ciclo de vida del bean singleton
+- [ ] Constructor inyecta `NotificacionService` y loguea `1) Constructor`
+- [ ] `@PostConstruct init()` loguea `2) @PostConstruct`
+- [ ] `@PreDestroy destroy()` loguea `4) @PreDestroy` (se dispara con `ctx.close()` en `Main`)
 
-### 8. `config/PerfilConfig.java` — `@Profile`
-- [x] `@Bean @Profile("dev")` y `@Bean @Profile("prod")` → `EntornoConfig`
-- [x] Probá los 3 escenarios:
-  - `mvn spring-boot:run` → umbral 5, sin bean de entorno
-  - `mvn spring-boot:run "-Dspring-boot.run.profiles=dev"` → umbral 3, `entornoDev`
-  - `mvn spring-boot:run "-Dspring-boot.run.profiles=prod"` → umbral 10, `entornoProd`
+### 8. `config/PerfilConfig.java` + `config/EntornoConfig.java` — `@Profile`
+- [ ] `EntornoConfig` — record value object (no es bean, lo crea `PerfilConfig`)
+- [ ] `@Bean @Profile("dev") entornoDev()` y `@Bean @Profile("prod") entornoProd()` —
+      solo se crea el que coincide con el perfil activo
+- [ ] `application-dev.properties` (`umbral-stock=3`) y `application-prod.properties`
+      (`umbral-stock=10`) sobrescriben `application.properties` (`umbral-stock=5`)
 
 ## Checklist de cierre
 
-- [x] Arranco un `ApplicationContext` y saco beans con `getBean` sin mirar
-- [x] Sé cuándo usar `@Bean` vs `@Component`/`@Service`/`@Repository`
-- [x] Constructor injection siempre, y sé por qué no field injection
-- [x] Devuelvo DTO, no entity
-- [x] `@Value` + `@Profile` + `application-{perfil}.properties` funcionan
-- [x] Terminé el mini-proyecto de inventario con DI
+- [ ] Entiendo la diferencia entre `@Component`, `@Service` y `@Repository` (misma
+      mecánica, distinta semántica)
+- [ ] Sé cuándo usar `@Bean` en vez de `@Component` (clases externas o que necesitan
+      parámetros de construcción)
+- [ ] Puedo inyectar configuración externa con `@Value` y activar un perfil con `@Profile`
+- [ ] Entiendo el ciclo de vida de un bean singleton: constructor → `@PostConstruct`
+      → uso → `@PreDestroy`

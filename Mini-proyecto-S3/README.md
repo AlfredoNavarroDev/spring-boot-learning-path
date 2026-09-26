@@ -1,55 +1,60 @@
-# Mini-proyecto S3 — Motor de reglas de detección de fraude
+# Práctica — Semana 3 (Streams API y motor de reglas)
 
-Mini-proyecto integrador de la **Semana 3** (Streams API y motor de reglas).
-**Java puro, sin Spring.** Dominio: detección de fraude sobre `Transaccion`.
+Motor de reglas de detección de fraude, **Java puro, sin Spring**. Dominio:
+transacciones que pasan por reglas componibles en vez de un `if` gigante — el mismo
+patrón que un sistema real de scoring/fraude.
 
-## Qué demuestra
-
-Cada concepto de la semana mapeado a su equivalente en NestJS/TS:
-
-| Concepto | Java acá | En NestJS/TS |
-|---|---|---|
-| Interfaces funcionales | `Predicate<T>`, composición `.and/.or/.negate` | funciones que devuelven `boolean` + `&&`/`\|\|` |
-| Manejo de nulos | `Optional<T>` como valor de retorno | `T \| null` + `?.` / `??` |
-| Procesamiento de colecciones | Stream API (`filter`, `map`, `collect(groupingBy/summingDouble)`) | `.filter().map().reduce()` de Array |
-| Reglas de negocio componibles | `MotorValidacion` + `RegistroRegla` | lista de `{ nombre, check }` filtrada |
-
-## Estructura
+Después de cada paso corré:
 
 ```
-src/main/java/com/alfredodev/miniproyectos3/
-├── modelo/       Transaccion (record), Cliente (record)
-├── repositorio/  CatalogoClientes — Optional como valor de retorno
-├── funcional/    ComposicionPredicados — Predicate.and/or/negate
-├── motor/        RegistroRegla, MotorValidacion
-├── reglas/       ReglasFraude — las 4 reglas reales
-├── streams/      ReporteTransacciones — groupingBy + summingDouble
-└── demo/         DemoMotor — main que corre 10 transacciones contra el motor
+mvn compile
 ```
 
-## Las 4 reglas
-
-1. `MONTO_SOBRE_LIMITE` — monto > límite diario
-2. `PAIS_BLOQUEADO` — país en lista negra
-3. `VELOCIDAD_EXCESIVA` — más de 3 transacciones en 1 minuto del mismo cliente
-4. `HORARIO_INUSUAL` — madrugada (00:00–05:00)
-
-El motor devuelve la lista de motivos de rechazo; **lista vacía = aprobada**.
-
-## Cómo correr
+Para correr la demo:
 
 ```bash
-# tests
-mvn test
-
-# demo
 mvn -q compile
 java -cp target/classes com.alfredodev.miniproyectos3.demo.DemoMotor
 ```
 
-## Por qué es una pieza de portafolio
+## Orden sugerido
 
-Es el mismo patrón que un sistema real de scoring/fraude: **reglas chicas y
-componibles en vez de un `if` gigante**. En la Semana 4 (Spring MVC) este motor
-se expone como endpoint real, y queda como librería reutilizable sin acoplarse a
-ningún framework.
+### 1. `modelo/Transaccion.java` y `modelo/Cliente.java` — records de dominio (ya completo)
+- [ ] `Transaccion` y `Cliente` como records inmutables
+
+### 2. `repositorio/CatalogoClientes.java` — `Optional<T>` como valor de retorno
+- [ ] Búsqueda de cliente que devuelve `Optional<Cliente>` en vez de `null` —
+      equivalente a `T | null` + `?.`/`??` en TS
+
+### 3. `funcional/ComposicionPredicados.java` — interfaces funcionales
+- [ ] Composición de `Predicate<T>` con `.and()/.or()/.negate()` — equivalente a
+      combinar funciones `boolean` con `&&`/`||`
+
+### 4. `motor/RegistroRegla.java` y `motor/MotorValidacion.java` — reglas de negocio componibles
+- [ ] `RegistroRegla` — envuelve nombre + `Predicate<Transaccion>`
+- [ ] `MotorValidacion` — corre todas las reglas y devuelve la lista de motivos de
+      rechazo (lista vacía = aprobada)
+
+### 5. `reglas/ReglasFraude.java` — las 4 reglas reales
+- [ ] `MONTO_SOBRE_LIMITE` — monto > límite diario
+- [ ] `PAIS_BLOQUEADO` — país en lista negra
+- [ ] `VELOCIDAD_EXCESIVA` — más de 3 transacciones en 1 minuto del mismo cliente
+- [ ] `HORARIO_INUSUAL` — madrugada (00:00–05:00)
+
+### 6. `streams/ReporteTransacciones.java` — Stream API de agregación
+- [ ] `groupingBy` + `summingDouble` sobre transacciones — equivalente a
+      `.filter().map().reduce()` de Array en TS
+
+### 7. `demo/DemoMotor.java` — demo end-to-end
+- [ ] `main` que corre 10 transacciones contra el motor completo
+
+### 8. Tests (`MotorValidacionTest`, `ReglasFraudeTest`, `CatalogoClientesTest`, `ReporteTransaccionesTest`)
+- [ ] Cubren motor, las 4 reglas, el catálogo con `Optional` y el reporte agregado
+
+## Checklist de cierre
+
+- [ ] Entiendo `Optional<T>` como alternativa explícita a devolver `null`
+- [ ] Puedo componer `Predicate<T>` en vez de escribir condicionales anidados
+- [ ] Puedo modelar reglas de negocio como datos (lista de `{nombre, check}`) en vez
+      de un método gigante
+- [ ] Domino `groupingBy`/`summingDouble` para reportes agregados

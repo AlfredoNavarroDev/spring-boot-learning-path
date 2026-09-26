@@ -1,46 +1,59 @@
-# Semana 5 — Spring Data JPA + PostgreSQL
+# Práctica — Semana 5 (Spring Data JPA + PostgreSQL)
 
-Persistencia real con PostgreSQL (via Docker Compose local), Flyway para versionar el esquema, y Spring Data JPA con queries derivadas + JPQL — el paralelismo casi directo de lo que ya conocés de TypeORM.
+Persistencia real con PostgreSQL (via Docker Compose local), Flyway para versionar
+el esquema, y Spring Data JPA con queries derivadas + JPQL — el paralelismo casi
+directo de lo que ya conocés de TypeORM.
 
-## Cómo correrlo
+Después de cada paso corré:
+
+```
+mvn compile
+```
+
+Para correrlo:
 
 ```bash
-# 1. Levantar Postgres local
 docker compose up -d
-
-# 2. Correr la app (Flyway migra el esquema y siembra datos de ejemplo al arrancar)
 mvn spring-boot:run
 ```
 
 - API: http://localhost:8085/api/productos
 - Swagger UI: http://localhost:8085/swagger-ui.html
 
-## Equivalencias TypeORM → Spring Data JPA
+## Orden sugerido
 
-| TypeORM | Spring Data JPA |
-|---|---|
-| `@Entity()` | `@Entity @Table(name = "...")` |
-| `@PrimaryGeneratedColumn()` | `@Id @GeneratedValue(strategy = GenerationType.IDENTITY)` |
-| `@ManyToOne(() => Categoria)` | `@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "categoria_id")` |
-| `Repository<Producto>` (`find`, `findOneBy`) | `JpaRepository<Producto, Long>` + queries derivadas (`existsByNombreAndSedeId`) |
-| Query builder / `createQueryBuilder()` | `@Query("select p from Producto p where ...")` (JPQL) |
-| Migraciones con `typeorm migration:generate` | Migraciones SQL versionadas en `src/main/resources/db/migration` (Flyway) |
-| `relations: ['categoria', 'sede']` en `find()` | `@EntityGraph(attributePaths = {"categoria", "sede"})` (evita N+1) |
+### 1. `domain/Categoria.java`, `domain/Sede.java`, `domain/Producto.java` — entidades JPA
+- [ ] `@Entity @Table(name = "...")` + `@Id @GeneratedValue(strategy = GenerationType.IDENTITY)`
+- [ ] `Categoria` (1) → (N) `Producto` (N) ← (1) `Sede` con
+      `@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(...)`
 
-## Modelo de datos
+### 2. `src/main/resources/db/migration/` — migraciones Flyway
+- [ ] `V1` categorías, `V2` sedes, `V3` productos (FKs + `UNIQUE(nombre, sede_id)`),
+      `V4` datos semilla — equivalente versionado a `typeorm migration:generate`
 
-`Categoria` (1) → (N) `Producto` (N) ← (1) `Sede`. Migraciones Flyway en orden: `V1` categorias, `V2` sedes, `V3` productos (con FKs y constraint `UNIQUE(nombre, sede_id)`), `V4` datos semilla.
+### 3. `repository/*Repository.java` — `JpaRepository` + queries derivadas/JPQL
+- [ ] Queries derivadas (ej. `existsByNombreAndSedeId`)
+- [ ] `@Query("select p from Producto p where ...")` para lo que en TypeORM sería
+      `createQueryBuilder()`
+- [ ] `@EntityGraph(attributePaths = {"categoria", "sede"})` para evitar N+1
 
-## Por qué `open-in-view: false`
+### 4. `exception/` — `CategoriaNoEncontradaException`, `ProductoNoEncontradoException`, `SedeNoEncontradaException`, `GlobalExceptionHandler`, `ApiError`
 
-Se desactiva a propósito: fuerza a que cualquier acceso a una relación `LAZY` (`producto.getCategoria().getNombre()`) pase por el service dentro de la transacción, no por la vista/serializador Jackson después de que la transacción ya cerró — evita el clásico `LazyInitializationException` silencioso y hace explícito dónde se paga el costo de cada fetch.
+### 5. `service/ProductoService.java` — `open-in-view: false`
+- [ ] Cualquier acceso a relación `LAZY` pasa por el service dentro de la
+      transacción, no por Jackson después de que la transacción cerró — evita
+      `LazyInitializationException` silencioso
 
-## Tests
+### 6. `controller/ProductoController.java` + `config/OpenApiConfig.java`
 
-```bash
-mvn test
-```
+### 7. Tests (`ProductoServiceTest`, `ProductoControllerTest`, `ProductoRepositoryIT`)
+- [ ] `ProductoRepositoryIT` — integración real con **Testcontainers**
+      (`postgres:16-alpine`): migraciones Flyway reales + queries derivadas contra
+      un Postgres descartable (requiere Docker)
 
-- `ProductoServiceTest` — unitario con Mockito, sin Spring ni base de datos.
-- `ProductoControllerTest` — `@WebMvcTest` + `MockMvc`, service mockeado.
-- `ProductoRepositoryIT` — integración real con **Testcontainers** (`postgres:16-alpine`): levanta un Postgres descartable, corre las migraciones Flyway reales contra él y valida las queries derivadas y `@Query`. Requiere Docker corriendo.
+## Checklist de cierre
+
+- [ ] Mapeo relaciones `@ManyToOne`/`@JoinColumn` igual que `@ManyToOne` de TypeORM
+- [ ] Versiono el esquema con Flyway en vez de `migration:generate`
+- [ ] Entiendo por qué `open-in-view: false` evita el `LazyInitializationException` silencioso
+- [ ] Puedo escribir un test de integración real con Testcontainers
